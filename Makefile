@@ -1,4 +1,4 @@
-# Simple build helper for bizz.
+# Simple build helper for beez.
 #
 #   make tidy    -> fetch/refresh dependencies (run this first)
 #   make         -> release build for this machine
@@ -7,10 +7,10 @@
 #
 # Windows needs TDM-GCC or MinGW on PATH (same as ge-modbus-browser).
 
-BINARY := bizz
-ICON_SVG := assets/bizz-icon.svg
-ICON_PNG := assets/bizz-icon.png
-ICON_ICO := assets/bizz-icon.ico
+BINARY := beez
+ICON_SVG := assets/beez-icon.svg
+ICON_PNG := assets/beez-icon.png
+ICON_ICO := assets/beez-icon.ico
 DIST := dist
 
 ifeq ($(OS),Windows_NT)
@@ -36,17 +36,17 @@ tidy:
 	go mod tidy
 
 run:
-	go run .
+	go run ./cmd/beez
 
 ifeq ($(OS),Windows_NT)
 build: $(DIST) $(ICON_ICO) icon
-	set CGO_ENABLED=1&& go build -buildmode=exe -ldflags "$(LDFLAGS)" -o $(OUT) .
+	set CGO_ENABLED=1&& go build -buildmode=exe -ldflags "$(LDFLAGS)" -o $(OUT) ./cmd/beez
 
 icon: resource.rc $(ICON_ICO)
 	$(WINDRES) resource.rc -o resource.syso
 else
 build: $(DIST)
-	go build -ldflags "$(LDFLAGS)" -o $(OUT) .
+	go build -ldflags "$(LDFLAGS)" -o $(OUT) ./cmd/beez
 endif
 
 $(ICON_PNG) $(ICON_ICO): $(ICON_SVG)

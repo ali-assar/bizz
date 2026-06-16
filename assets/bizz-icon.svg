@@ -1,6 +1,6 @@
 <svg width="256" height="256" viewBox="0 0 256 256" role="img" xmlns="http://www.w3.org/2000/svg">
-  <title>bizz app icon</title>
-  <desc>A flat geometric bee on a warm amber rounded-square background, representing the bizz LAN presence broadcaster app.</desc>
+  <title>beez app icon</title>
+  <desc>A flat geometric bee on a warm amber rounded-square background, representing the beez LAN presence broadcaster app.</desc>
 
   <!-- Rounded square background -->
   <rect width="256" height="256" rx="58" fill="#F5A623"/>

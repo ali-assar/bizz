@@ -1,14 +1,14 @@
-# bizz
+# beez
 
 A tiny desktop app for the office. When you run it, it opens a small window
 showing your own IP address and username, then broadcasts that on the local
-network every few seconds. Every other PC on the same network running bizz
+network every few seconds. Every other PC on the same network running beez
 shows up in the same window, so anyone can see who's online and what their
 IP is — no more shouting across the room or pinging on chat to ask "what's
 your IP?" when you've got headphones in and missed someone calling you.
 
-It is one Go file, uses the [Fyne](https://fyne.io) GUI toolkit, and builds
-the same way on Windows and Linux.
+It uses the [Fyne](https://fyne.io) GUI toolkit and is now organized with a
+`cmd/beez` entrypoint plus reusable package code.
 
 ## How it works
 
@@ -51,10 +51,10 @@ beyond what's listed above:
 
 ```
 # on Linux
-go build -o bizz .
+go build -o beez ./cmd/beez
 
 # on Windows (hides the console window)
-go build -ldflags -H=windowsgui -o bizz.exe .
+go build -ldflags -H=windowsgui -o beez.exe ./cmd/beez
 ```
 
 Or with the included Makefile: `make linux` / `make windows`.
@@ -83,8 +83,8 @@ Or with the Makefile: `make cross-windows` / `make cross-linux`.
 Just run the binary — no flags or config needed:
 
 ```
-./bizz          # Linux
-bizz.exe        # Windows
+./beez          # Linux
+beez.exe        # Windows
 ```
 
 The first time it runs, Windows Firewall (or a Linux firewall like ufw)
@@ -93,15 +93,15 @@ nobody else will show up in the list.
 
 ## Notes / things to tweak
 
-- `appPort` in `main.go` (default `9876`) — change it if that port is
+- `appPort` in `internal/beez/main.go` (default `9876`) — change it if that port is
   already used by something else on your network.
 - `announceEvery` / `peerTimeout` — how chatty the broadcasts are and how
   quickly someone disappears after closing the app.
 - If a machine has more than one active network connection (e.g. a VPN),
   pick your **office LAN** address in the Network dropdown — not the one
   marked `· VPN`. With VPN on, the app defaults to LAN when it can find one.
-  Broadcast discovery only reaches people on the same subnet; bizz pings are
+  Broadcast discovery only reaches people on the same subnet; beez pings are
   sent directly to their IP.
 - **Windows can't see you but you can see them?** Make sure both sides picked
   the same kind of network (LAN, not VPN) and that Windows Firewall allows
-  inbound UDP on port `9876` for `bizz`.
+  inbound UDP on port `9876` for `beez`.
