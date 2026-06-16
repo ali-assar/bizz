@@ -33,6 +33,7 @@ import (
 
 const (
 	iconFile = "assets/beez-icon.svg"
+	iconPNG  = "assets/beez-icon.png"
 
 	winWidthCompact   = 280
 	winHeightCompact  = 210
@@ -186,8 +187,7 @@ func Run() {
 	a := app.NewWithID("io.beez.app")
 	a.Settings().SetTheme(newbeezTheme())
 
-	iconSVG, _ := embeddedAssets.ReadFile(iconFile)
-	icon := rasterizeSVG("beez-icon.png", iconSVG, 256)
+	icon := loadAppIcon(embeddedAssets, iconPNG, iconFile)
 	a.SetIcon(icon)
 
 	w := a.NewWindow("beez")

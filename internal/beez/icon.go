@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"image"
 	"image/png"
+	"io/fs"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -12,6 +13,17 @@ import (
 	"github.com/srwiley/oksvg"
 	"github.com/srwiley/rasterx"
 )
+
+// loadAppIcon prefers the embedded PNG; falls back to rasterizing the SVG.
+func loadAppIcon(assets fs.FS, pngPath, svgPath string) fyne.Resource {
+	if data, err := fs.ReadFile(assets, pngPath); err == nil && len(data) > 0 {
+		return fyne.NewStaticResource("beez-icon.png", data)
+	}
+	if data, err := fs.ReadFile(assets, svgPath); err == nil && len(data) > 0 {
+		return rasterizeSVG("beez-icon.png", data, 256)
+	}
+	return fyne.NewStaticResource("beez-icon.png", nil)
+}
 
 // rasterizeSVG turns an SVG into a PNG resource. Fyne's built-in SVG loader
 // only paints simple shapes, so complex icons (ellipses, paths) come out as a
