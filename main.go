@@ -29,21 +29,22 @@ import (
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 )
 
 const (
 	iconFile = "assets/bizz-icon.svg"
 
-	winWidthCompact  = 420
-	winHeightCompact = 280
-	winWidthExpanded = 420
-	winHeightExpanded = 620
+	winWidthCompact   = 280
+	winHeightCompact  = 210
+	winWidthExpanded  = 280
+	winHeightExpanded = 365
 
-	bizzButtonSize = 140
-	peerListWidth  = 380
-	peerListHeight = 320
+	bizzButtonSize = 72
+	peerListWidth  = 248
+	peerListHeight = 100
+
+	maxBizzReason = 200
 )
 
 //go:embed assets/*
@@ -61,10 +62,11 @@ const (
 
 // packet is the JSON we send and receive on the LAN.
 type packet struct {
-	Type string `json:"type,omitempty"` // empty = presence, "bizz" = attention ping
-	User string `json:"user"`
-	Host string `json:"host"`
-	IP   string `json:"ip"`
+	Type   string `json:"type,omitempty"` // empty = presence, "bizz" = attention ping
+	User   string `json:"user"`
+	Host   string `json:"host"`
+	IP     string `json:"ip"`
+	Reason string `json:"reason,omitempty"` // why they bizzed (bizz packets only)
 }
 
 type peer struct {
@@ -225,16 +227,34 @@ func announceLoop(ctx context.Context, me packet) {
 	}
 }
 
-func sendBizz(me packet, targetIP string) error {
+func sendBizz(me packet, targetIP, reason string) error {
 	conn, err := net.DialUDP("udp4", nil, &net.UDPAddr{IP: net.ParseIP(targetIP), Port: appPort})
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
 	me.Type = msgBizz
+	me.Reason = truncateBizzReason(reason)
 	data, _ := json.Marshal(me)
 	_, err = conn.Write(data)
 	return err
+}
+
+func truncateBizzReason(s string) string {
+	s = strings.TrimSpace(s)
+	runes := []rune(s)
+	if len(runes) <= maxBizzReason {
+		return s
+	}
+	return string(runes[:maxBizzReason])
+}
+
+func bizzNotificationContent(from packet) string {
+	who := fmt.Sprintf("%s on %s", from.User, from.Host)
+	if r := strings.TrimSpace(from.Reason); r != "" {
+		return fmt.Sprintf("%s — %s", who, r)
+	}
+	return fmt.Sprintf("%s wants your attention.", who)
 }
 
 // listen waits for packets from everyone else on the LAN.
@@ -297,11 +317,10 @@ func main() {
 
 	onBizzReceived := func(from packet) {
 		fyne.Do(func() {
-			dialog.ShowInformation(
-				"Bizz!",
-				fmt.Sprintf("%s on %s (%s) wants your attention.", from.User, from.Host, from.IP),
-				w,
-			)
+			a.SendNotification(&fyne.Notification{
+				Title:   "Bizz!",
+				Content: bizzNotificationContent(from),
+			})
 			w.RequestFocus()
 		})
 	}
@@ -344,7 +363,7 @@ func main() {
 
 	title := canvas.NewText("bizz", colorAmberGlow)
 	title.TextStyle = fyne.TextStyle{Bold: true}
-	title.TextSize = 24
+	title.TextSize = 18
 	title.Alignment = fyne.TextAlignCenter
 
 	youLabel := widget.NewLabel("")
@@ -376,7 +395,7 @@ func main() {
 				continue
 			}
 			peer := p
-			label := fmt.Sprintf("%s · %s (%s)", peer.User, peer.Host, peer.IP)
+			label := fmt.Sprintf("%s · %s", peer.User, peer.IP)
 			checked := selected[peer.IP]
 			chk := widget.NewCheck(label, func(on bool) {
 				if on {
@@ -395,25 +414,36 @@ func main() {
 		peerChecks.Refresh()
 	}
 
+	bizzReasonEntry := widget.NewEntry()
+	bizzReasonEntry.SetPlaceHolder("Why are you bizzing?")
+
 	bizzSelectedBtn := widget.NewButton("Bizz selected", func() {
 		if len(selected) == 0 {
-			dialog.ShowInformation("Bizz", "Select at least one person to bizz.", w)
+			a.SendNotification(&fyne.Notification{
+				Title:   "Bizz",
+				Content: "Select at least one person first.",
+			})
 			return
 		}
+		reason := bizzReasonEntry.Text
 		sent := 0
 		for ip := range selected {
-			if err := sendBizz(me, ip); err == nil {
+			if err := sendBizz(me, ip, reason); err == nil {
 				sent++
 			}
 		}
-		dialog.ShowInformation("Bizz", fmt.Sprintf("Bizzed %d colleague(s).", sent), w)
+		a.SendNotification(&fyne.Notification{
+			Title:   "Bizz sent",
+			Content: fmt.Sprintf("Pinged %d colleague(s).", sent),
+		})
 	})
 	bizzSelectedBtn.Importance = widget.HighImportance
 
 	userPanel := container.NewVBox(
 		widget.NewSeparator(),
-		widget.NewLabelWithStyle("Who do you want to bizz?", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
-		peerScroll,
+		widget.NewLabelWithStyle("Pick colleagues", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+		container.NewBorder(nil, nil, nil, nil, peerScroll),
+		bizzReasonEntry,
 		bizzSelectedBtn,
 	)
 	userPanel.Hide()
@@ -432,7 +462,7 @@ func main() {
 
 	bizzBtn := newTappableIcon(icon, bizzButtonSize, togglePanel)
 
-	hint := widget.NewLabelWithStyle("Tap the bee to pick colleagues", fyne.TextAlignCenter, fyne.TextStyle{Italic: true})
+	hint := widget.NewLabelWithStyle("Tap bee to pick who to bizz", fyne.TextAlignCenter, fyne.TextStyle{Italic: true})
 
 	compact := container.NewVBox(
 		title,

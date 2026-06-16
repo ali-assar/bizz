@@ -1,6 +1,11 @@
 # If you prefer the allow list template instead of the deny list, see community template:
 # https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
 #
+# Generated from assets/bizz-icon.svg
+assets/bizz-icon.ico
+resource.syso
+fyne_metadata_init.go
+
 # Binaries for programs and plugins
 *.exe
 *.exe~

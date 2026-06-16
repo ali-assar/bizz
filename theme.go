@@ -78,15 +78,15 @@ func (t *bizzTheme) Icon(name fyne.ThemeIconName) fyne.Resource {
 func (t *bizzTheme) Size(name fyne.ThemeSizeName) float32 {
 	switch name {
 	case theme.SizeNamePadding:
-		return 14
+		return 8
 	case theme.SizeNameInnerPadding:
-		return 10
+		return 6
 	case theme.SizeNameText:
-		return 15
+		return 13
 	case theme.SizeNameHeadingText:
-		return 22
+		return 16
 	case theme.SizeNameSubHeadingText:
-		return 17
+		return 14
 	case theme.SizeNameInputBorder:
 		return 2
 	case theme.SizeNameSeparatorThickness:

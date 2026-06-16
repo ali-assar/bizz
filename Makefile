@@ -1,23 +1,36 @@
 # Simple build helper for bizz.
 #
-#   make tidy              -> fetch/refresh dependencies (run this first)
-#   make run                -> run on your current machine
-#   make linux               -> native build with embedded app icon (needs fyne CLI)
-#   make windows              -> native build with embedded app icon (needs fyne CLI)
-#   make linux-plain          -> plain go build, no embedded binary icon
-#   make windows-plain        -> plain go build, no embedded binary icon
-#   make cross-windows         -> cross-compile a Windows .exe (needs Docker)
-#   make cross-linux           -> cross-compile a Linux binary (needs Docker)
-#   make clean                  -> remove build output
+#   make tidy    -> fetch/refresh dependencies (run this first)
+#   make         -> release build for this machine
+#   make run     -> run on your current machine
+#   make clean   -> remove build output
 #
-# For embedded taskbar / file icons install the Fyne tool once:
-#   go install fyne.io/fyne/v2/cmd/fyne@latest
+# Windows needs TDM-GCC or MinGW on PATH (same as ge-modbus-browser).
 
 BINARY := bizz
-ICON := assets/bizz-icon.svg
+ICON_SVG := assets/bizz-icon.svg
+ICON_PNG := assets/bizz-icon.png
+ICON_ICO := assets/bizz-icon.ico
 DIST := dist
 
-.PHONY: tidy run linux windows linux-plain windows-plain cross-windows cross-linux clean
+ifeq ($(OS),Windows_NT)
+	EXE_EXT := .exe
+	RM := rmdir /s /q
+	MKDIR := if not exist "$(DIST)" mkdir "$(DIST)"
+	WINDRES := windres
+	LDFLAGS := -s -w -linkmode=internal -H=windowsgui
+else
+	EXE_EXT :=
+	RM := rm -rf
+	MKDIR := mkdir -p $(DIST)
+	LDFLAGS := -s -w
+endif
+
+OUT := $(DIST)/$(BINARY)$(EXE_EXT)
+
+.PHONY: all tidy run build icon clean
+
+all: build
 
 tidy:
 	go mod tidy
@@ -25,28 +38,23 @@ tidy:
 run:
 	go run .
 
-linux: $(DIST)
-	fyne package -os linux -name $(BINARY) -icon $(ICON) -release -executable $(DIST)/$(BINARY)-linux-amd64 .
+ifeq ($(OS),Windows_NT)
+build: $(DIST) $(ICON_ICO) icon
+	set CGO_ENABLED=1&& go build -buildmode=exe -ldflags "$(LDFLAGS)" -o $(OUT) .
 
-windows: $(DIST)
-	fyne package -os windows -name $(BINARY) -icon $(ICON) -release -executable $(DIST)/$(BINARY)-windows-amd64.exe .
+icon: resource.rc $(ICON_ICO)
+	$(WINDRES) resource.rc -o resource.syso
+else
+build: $(DIST)
+	go build -ldflags "$(LDFLAGS)" -o $(OUT) .
+endif
 
-linux-plain: $(DIST)
-	GOOS=linux GOARCH=amd64 go build -o $(DIST)/$(BINARY)-linux-amd64 .
-
-windows-plain: $(DIST)
-	GOOS=windows GOARCH=amd64 go build -ldflags -H=windowsgui -o $(DIST)/$(BINARY)-windows-amd64.exe .
-
-# These two need Docker and the fyne-cross tool:
-#   go install github.com/fyne-io/fyne-cross@latest
-cross-windows:
-	fyne-cross windows -arch=amd64 -icon $(ICON) .
-
-cross-linux:
-	fyne-cross linux -arch=amd64 -icon $(ICON) .
+$(ICON_PNG) $(ICON_ICO): $(ICON_SVG)
+	go run ./tools/genicon
 
 $(DIST):
-	mkdir -p $(DIST)
+	$(MKDIR)
 
 clean:
-	rm -rf $(DIST) fyne-cross
+	-$(RM) $(DIST)
+	-$(RM) resource.syso
