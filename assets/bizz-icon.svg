@@ -1,0 +1,56 @@
+<svg width="256" height="256" viewBox="0 0 256 256" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>bizz app icon</title>
+  <desc>A flat geometric bee on a warm amber rounded-square background, representing the bizz LAN presence broadcaster app.</desc>
+
+  <!-- Rounded square background -->
+  <rect width="256" height="256" rx="58" fill="#F5A623"/>
+  <rect width="256" height="256" rx="58" fill="none" stroke="#1A1108" stroke-width="6" opacity="0.25"/>
+
+  <!-- WINGS — drawn first so body overlaps them -->
+  <!-- left fore wing -->
+  <ellipse cx="78" cy="98" rx="38" ry="22" fill="#F5C842" opacity="0.45" transform="rotate(-28, 78, 98)"/>
+  <!-- left hind wing -->
+  <ellipse cx="86" cy="120" rx="25" ry="14" fill="#F5C842" opacity="0.35" transform="rotate(-20, 86, 120)"/>
+  <!-- right fore wing -->
+  <ellipse cx="178" cy="98" rx="38" ry="22" fill="#F5C842" opacity="0.45" transform="rotate(28, 178, 98)"/>
+  <!-- right hind wing -->
+  <ellipse cx="170" cy="120" rx="25" ry="14" fill="#F5C842" opacity="0.35" transform="rotate(20, 170, 120)"/>
+
+  <!-- THORAX -->
+  <ellipse cx="128" cy="112" rx="38" ry="26" fill="#1A1108"/>
+
+  <!-- ABDOMEN — layered stripes -->
+  <ellipse cx="128" cy="168" rx="50" ry="62" fill="#1A1108"/>
+  <!-- amber stripe 1 -->
+  <ellipse cx="128" cy="146" rx="50" ry="17" fill="#F5C842"/>
+  <!-- black stripe -->
+  <ellipse cx="128" cy="162" rx="50" ry="17" fill="#1A1108"/>
+  <!-- amber stripe 2 -->
+  <ellipse cx="128" cy="178" rx="50" ry="17" fill="#F5C842"/>
+  <!-- black tail -->
+  <ellipse cx="128" cy="210" rx="36" ry="20" fill="#1A1108"/>
+
+  <!-- STINGER -->
+  <path d="M128 228 L121 240 L128 250 L135 240 Z" fill="#1A1108"/>
+
+  <!-- HEAD -->
+  <circle cx="128" cy="82" r="31" fill="#1A1108"/>
+
+  <!-- eyes -->
+  <circle cx="114" cy="76" r="8" fill="#F5A623"/>
+  <circle cx="142" cy="76" r="8" fill="#F5A623"/>
+  <!-- eye shine -->
+  <circle cx="116" cy="73" r="3" fill="white" opacity="0.9"/>
+  <circle cx="144" cy="73" r="3" fill="white" opacity="0.9"/>
+
+  <!-- ANTENNAE -->
+  <line x1="118" y1="53" x2="95" y2="24" stroke="#1A1108" stroke-width="4.5" stroke-linecap="round"/>
+  <circle cx="92" cy="20" r="7" fill="#F5C842"/>
+  <line x1="138" y1="53" x2="161" y2="24" stroke="#1A1108" stroke-width="4.5" stroke-linecap="round"/>
+  <circle cx="164" cy="20" r="7" fill="#F5C842"/>
+
+  <!-- BUZZ lines — concentric arcs right side -->
+  <path d="M196 138 Q214 128 196 118" fill="none" stroke="#1A1108" stroke-width="4" stroke-linecap="round" opacity="0.55"/>
+  <path d="M205 146 Q232 128 205 110" fill="none" stroke="#1A1108" stroke-width="3.5" stroke-linecap="round" opacity="0.35"/>
+  <path d="M213 154 Q250 128 213 102" fill="none" stroke="#1A1108" stroke-width="3" stroke-linecap="round" opacity="0.2"/>
+</svg>
