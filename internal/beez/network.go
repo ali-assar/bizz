@@ -7,7 +7,6 @@ import (
 	"net"
 	"sort"
 	"strings"
-	"syscall"
 	"time"
 )
 
@@ -182,21 +181,6 @@ func dialUDPFrom(localIP, remoteIP string, remotePort int) (*net.UDPConn, error)
 		return nil, err
 	}
 	return conn, nil
-}
-
-func enableBroadcast(conn *net.UDPConn) error {
-	raw, err := conn.SyscallConn()
-	if err != nil {
-		return err
-	}
-	var opErr error
-	err = raw.Control(func(fd uintptr) {
-		opErr = syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, syscall.SO_BROADCAST, 1)
-	})
-	if err != nil {
-		return err
-	}
-	return opErr
 }
 
 func announceLoop(ctx context.Context, me packet, la localAddress) {
