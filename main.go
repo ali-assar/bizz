@@ -15,9 +15,7 @@ package main
 import (
 	"context"
 	"embed"
-	"encoding/json"
 	"fmt"
-	"net"
 	"os"
 	"os/user"
 	"sort"
@@ -117,61 +115,6 @@ func (b *peerBook) list() []peer {
 	return out
 }
 
-// localAddress is one IPv4 on this machine, with a human-readable label.
-type localAddress struct {
-	IP    string
-	Label string // e.g. "192.168.1.5 (wlan0)"
-}
-
-// localIPv4Addresses returns every non-loopback IPv4 on up interfaces.
-func localIPv4Addresses() []localAddress {
-	var out []localAddress
-	ifaces, _ := net.Interfaces()
-	for _, iface := range ifaces {
-		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
-			continue
-		}
-		addrs, _ := iface.Addrs()
-		for _, addr := range addrs {
-			ipNet, ok := addr.(*net.IPNet)
-			if !ok {
-				continue
-			}
-			ip4 := ipNet.IP.To4()
-			if ip4 == nil {
-				continue
-			}
-			out = append(out, localAddress{
-				IP:    ip4.String(),
-				Label: fmt.Sprintf("%s (%s)", ip4, iface.Name),
-			})
-		}
-	}
-	sort.Slice(out, func(i, j int) bool { return out[i].Label < out[j].Label })
-	return out
-}
-
-// defaultLocalIP picks the address the OS would use for general LAN traffic,
-// or the first listed address as a fallback.
-func defaultLocalIP(addrs []localAddress) string {
-	if len(addrs) == 0 {
-		return "127.0.0.1"
-	}
-	conn, err := net.Dial("udp4", "8.8.8.8:80")
-	if err == nil {
-		defer conn.Close()
-		if a, ok := conn.LocalAddr().(*net.UDPAddr); ok && !a.IP.IsUnspecified() {
-			ip := a.IP.String()
-			for _, la := range addrs {
-				if la.IP == ip {
-					return ip
-				}
-			}
-		}
-	}
-	return addrs[0].IP
-}
-
 // currentUsername returns the logged-in user's name on both Windows and
 // Linux, stripping the "DOMAIN\" prefix Windows sometimes adds.
 func currentUsername() string {
@@ -195,7 +138,7 @@ type announcer struct {
 	cancel context.CancelFunc
 }
 
-func (a *announcer) restart(me packet) {
+func (a *announcer) restart(me packet, la localAddress) {
 	a.mu.Lock()
 	if a.cancel != nil {
 		a.cancel()
@@ -203,41 +146,7 @@ func (a *announcer) restart(me packet) {
 	ctx, cancel := context.WithCancel(context.Background())
 	a.cancel = cancel
 	a.mu.Unlock()
-	go announceLoop(ctx, me)
-}
-
-func announceLoop(ctx context.Context, me packet) {
-	conn, err := net.DialUDP("udp4", nil, &net.UDPAddr{IP: net.IPv4bcast, Port: appPort})
-	if err != nil {
-		fmt.Println("bizz: could not open broadcast socket:", err)
-		return
-	}
-	defer conn.Close()
-	me.Type = msgAnnounce
-	data, _ := json.Marshal(me)
-	ticker := time.NewTicker(announceEvery)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			_, _ = conn.Write(data)
-		}
-	}
-}
-
-func sendBizz(me packet, targetIP, reason string) error {
-	conn, err := net.DialUDP("udp4", nil, &net.UDPAddr{IP: net.ParseIP(targetIP), Port: appPort})
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-	me.Type = msgBizz
-	me.Reason = truncateBizzReason(reason)
-	data, _ := json.Marshal(me)
-	_, err = conn.Write(data)
-	return err
+	go announceLoop(ctx, me, la)
 }
 
 func truncateBizzReason(s string) string {
@@ -257,45 +166,18 @@ func bizzNotificationContent(from packet) string {
 	return fmt.Sprintf("%s wants your attention.", who)
 }
 
-// listen waits for packets from everyone else on the LAN.
-func listen(book *peerBook, onBizz func(packet)) {
-	conn, err := net.ListenUDP("udp4", &net.UDPAddr{IP: net.IPv4zero, Port: appPort})
-	if err != nil {
-		fmt.Println("bizz: could not listen for broadcasts:", err)
-		return
-	}
-	defer conn.Close()
-	buf := make([]byte, 512)
-	for {
-		n, _, err := conn.ReadFromUDP(buf)
-		if err != nil {
-			continue
-		}
-		var p packet
-		if json.Unmarshal(buf[:n], &p) != nil || p.IP == "" {
-			continue
-		}
-		if p.Type == msgBizz {
-			if onBizz != nil {
-				onBizz(p)
-			}
-			continue
-		}
-		book.see(p)
-	}
-}
-
 func main() {
 	host, _ := os.Hostname()
 	addrs := localIPv4Addresses()
 	selectedIP := defaultLocalIP(addrs)
 
 	me := packet{User: currentUsername(), Host: host, IP: selectedIP}
+	selectedLA, _ := findLocalAddress(addrs, selectedIP)
 	book := newPeerBook()
 	book.see(me)
 
 	var ann announcer
-	ann.restart(me)
+	ann.restart(me, selectedLA)
 
 	a := app.NewWithID("io.bizz.app")
 	a.Settings().SetTheme(newBizzTheme())
@@ -355,8 +237,11 @@ func main() {
 	ipSelect := widget.NewSelect(ipLabels, func(label string) {
 		selectedIP = labelToIP[label]
 		me.IP = selectedIP
+		if la, ok := findLocalAddress(addrs, selectedIP); ok {
+			selectedLA = la
+		}
 		book.see(me)
-		ann.restart(me)
+		ann.restart(me, selectedLA)
 	})
 	ipSelect.SetSelected(selectedLabel)
 	ipSelect.PlaceHolder = "Choose network interface"
@@ -428,7 +313,7 @@ func main() {
 		reason := bizzReasonEntry.Text
 		sent := 0
 		for ip := range selected {
-			if err := sendBizz(me, ip, reason); err == nil {
+			if err := sendBizz(me, selectedLA, ip, reason); err == nil {
 				sent++
 			}
 		}

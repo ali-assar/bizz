@@ -98,5 +98,10 @@ nobody else will show up in the list.
 - `announceEvery` / `peerTimeout` — how chatty the broadcasts are and how
   quickly someone disappears after closing the app.
 - If a machine has more than one active network connection (e.g. a VPN),
-  it picks whichever one the OS treats as the default route, which is
-  usually but not always the office LAN adapter.
+  pick your **office LAN** address in the Network dropdown — not the one
+  marked `· VPN`. With VPN on, the app defaults to LAN when it can find one.
+  Broadcast discovery only reaches people on the same subnet; bizz pings are
+  sent directly to their IP.
+- **Windows can't see you but you can see them?** Make sure both sides picked
+  the same kind of network (LAN, not VPN) and that Windows Firewall allows
+  inbound UDP on port `9876` for `bizz`.
